@@ -11,32 +11,34 @@ import scala.concurrent.Future
 object MLServingModelActor {
   def name = "MlServingModel"
 
-  def props = Props[MLServingModelActor]
+
+
+  def props (implicit  system: ActorSystem) : Props = Props(new MLServingModelActor())
 
   def extractShardId: ExtractShardId = {
-    case Feature(transactionId, _) =>
-      (transactionId % 2).toString
+    case Feature(accountNumber, _) =>
+      (accountNumber % 2).toString
   }
 
   def extractEntityId: ExtractEntityId = {
-    case msg @ Feature(transactionId, _) =>
-      (transactionId.toString, msg)
+    case msg @ Feature(accountNumber, _) =>
+      (accountNumber.toString, msg)
   }
 }
 
 
-class MLServingModelActor(implicit val system: ActorSystem) extends Actor with ActorLogging{
+class MLServingModelActor()(implicit  system: ActorSystem) extends Actor with ActorLogging{
 
   implicit val executor = system.dispatcher
 
   override def receive: Receive = {
     case Feature(transactionId, dataPoint) =>
-     val predict =  predict(dataPoint)
+     val predict =  score(dataPoint)
       sender ! predict
   }
 
 
-  def predict(features: String): Future[Prediction] = {
+  def score(features: String): Future[Prediction] = {
 
     // look up ml model file
     Future(Prediction(0.5))

@@ -1,32 +1,30 @@
 package com.fintech.fraud.api
 
 import akka.pattern.ask
-import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem}
+import akka.actor.{ActorRef, ActorSystem}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import com.fintech.fraud.model.domain.{Feature, Prediction}
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import java.util.concurrent.TimeUnit
+
 import spray.json._
 
-trait APIJsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
-  implicit val featureFormat: JsonFormat[Feature] = jsonFormat2(Feature)
-  implicit val predictionFormat: JsonFormat[Prediction] = jsonFormat3(Prediction)
-}
 
-class MLScoringAPIGateway(mLServingModelActor: ActorRef)(implicit val actorSystem: ActorSystem) extends APIJsonSupport {
+class MLScoringAPIGateway(mLServingModelActor: ActorRef)(implicit val actorSystem: ActorSystem)  {
 
 
+  import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+  import com.fintech.fraud.model.JsonFormats._
 
   val route: Route = {
-    path("trans") {
+    path("api/score") {
       post {
         entity(as[Feature]) { feature =>
           complete {
-            mLServingModelActor.ask(feature)(5 seconds).mapTo[Prediction]
+            mLServingModelActor.ask(feature)(Duration(5,TimeUnit.SECONDS)).mapTo[Prediction]
           }
         }
       }
