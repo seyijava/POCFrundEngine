@@ -1,0 +1,127 @@
+package com.fintech.fraud.transaction.handler
+
+
+
+object PaymentTransactionHandler
+{
+    def apply(topic: String, groupId: String, bootstrapServer:String, mlServingUrl: String)(implicit  actorSystem: ActorSystem, mat: Materializer) = new PaymentTransactionHandler(topic,groupId,bootstrapServer,mlServingUrl)
+}
+
+class PaymentTransactionHandler(topic: String, groupId: String, bootstrapServer:String, mlServingUrl: String) {
+  /*val logger = actorSystem.log
+
+  val kafkaConsumerSettings: ConsumerSettings[String, String] =
+    ConsumerSettings(actorSystem, new StringDeserializer, new StringDeserializer)
+      .withBootstrapServers(bootstrapServer)
+      .withGroupId(groupId)
+
+  val producerSettings = ProducerSettings(actorSystem, new StringSerializer, new StringSerializer)
+    .withBootstrapServers(bootstrapServer)
+
+  implicit  val ec = actorSystem.dispatcher
+
+  def start: Consumer.Control = {
+
+    val http = Http(actorSystem)
+
+    val nakadiConnectionFlow = http.outgoingConnectionHttps("", 90)
+
+    val kafkaSource: Source[ConsumerMessage.CommittableMessage[String, String], Consumer.Control] = Consumer.committableSource(kafkaConsumerSettings, Subscriptions.topics(topic))
+
+    val paymentTransactionFlow: Source[(CommittableOffset, PaymentTransaction), Consumer.Control] = kafkaSource.via(transformPayloadFlow)
+
+    val commitFlow: Source[PaymentTransaction, Consumer.Control] = paymentTransactionFlow.map { case (offset, data) =>
+      logger.info("")
+      offset.commitScaladsl()
+      data
+    }
+    val transactionScoringFlow: Source[(PaymentTransaction, Boolean), Consumer.Control] =
+      commitFlow.map( a =>  Source.single(HttpRequest(HttpMethods.GET, mlServingUrl))
+        .via(nakadiConnectionFlow).flatMapConcat{
+        case response @ HttpResponse(StatusCodes.OK, _, _, _) =>
+          response.entity.dataBytes
+          .via(Deflate.decoderFlow)
+            .via(Framing.delimiter(ByteString("\n"), Int.MaxValue))
+            //.map(bs => Json.read[EventBatch](bs.utf8String))
+            .map(u => (a,true)).run()
+      }
+      )
+
+
+
+    val routeFlow: Source[(PaymentTransaction, String), Consumer.Control] =
+
+      transactionScoringFlow.map(payment => (payment._1,routePaymentToKafkaDestinationTopic(payment._1.paymentType,payment._2,getTopic)))
+
+    val kafkaProducerRecordFlow : Source[ProducerRecord[String,String],Consumer.Control] = routeFlow.map(msg => new ProducerRecord[String,String](msg._2,PaymentTransactionJSONFormat.write(msg._1).toString()))
+
+    val runnable: RunnableGraph[Consumer.Control] = kafkaProducerRecordFlow.to(Producer.plainSink(producerSettings))
+
+
+     runnable.run()
+  }
+
+
+  def checkTransactionMLScoreFromMLServingGateway2(payment: PaymentTransaction): Future[Either[HttpError,(PaymentTransaction, Boolean)]] = {
+    Http()
+      .singleRequest(HttpRequest(method = HttpMethods.POST,uri = mlServingUrl,
+        entity = HttpEntity(ContentTypes.`application/json`,"")))
+      .map{
+        case response if response.status != StatusCodes.OK =>
+          response.discardEntityBytes()
+         Left(HttpError(payment,""))
+        case response =>
+          Unmarshal(response).to[Prediction]
+            .map{
+              r => if(r.score > 1) Right(payment,true) else Right(payment,false)}
+         }.recover{
+         ex => Left(HttpError(payment,""))
+    }
+  }
+
+  def checkTransactionMLScoreFromMLServingGateway(payment: PaymentTransaction): (PaymentTransaction, Boolean) = ???
+  //{
+   /* Http()
+      .singleRequest(HttpRequest(method = HttpMethods.POST,uri = mlServingUrl
+      ,entity = HttpEntity(ContentTypes.`application/json`,"")))
+      .map {
+        case response if response.status != StatusCodes.OK =>
+          response.discardEntityBytes()
+         // responseCallback.invoke(Failure(HttpResponseException(response.status)))
+        case response =>
+          Unmarshal(response)
+            .to[Prediction]
+            .map(r => (payment,getScore(r)))
+            .recover {
+              case ex =>
+               // responseCallback.invoke(Failure(UnmarshalResponseException(ex.getMessage)))
+            }
+      }
+      .recover {
+       // case ex => responseCallback.invoke(Failure(HttpConnectionException(ex.getMessage)))
+      }
+  }*/
+
+    def routePaymentToKafkaDestinationTopic(paymentType: String,isFraud: Boolean,f: (Boolean,String) => String ): String  = {
+      f(isFraud,s"OutBoundPayment/$paymentType")
+   }
+
+  private def transformPayloadFlow: Flow[CommittableMessage[String, String], (CommittableOffset, PaymentTransaction), NotUsed] =
+    Flow[CommittableMessage[String, String]].map {
+      msg: CommittableMessage[String, String] => {
+        val msgValue = msg.record.value
+        (msg.committableOffset, msgValue.parseJson.convertTo[PaymentTransaction])
+      }
+    }
+
+   def getTopic(isFraud: Boolean, topic: String): String = isFraud match {
+         case true => "FraudulentPayment"
+         case  false => topic
+       }
+    def getScore(prediction: Prediction) : Boolean ={
+           prediction.score match {case 1  => true
+           case 0 => false
+           }
+    }
+*/
+}

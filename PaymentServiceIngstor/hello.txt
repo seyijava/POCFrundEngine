@@ -1,0 +1,20 @@
+val route : Route = 
+  post {
+    path("publish") {
+      extractRequestEntity { entity =>
+        onComplete(entity.toStrict(10.seconds).map(_.data.utf8String){ message =>
+          Producer.plainSink(producerSettings)(
+            new ProducerRecord[String, String](topic, message.result(2 seconds))
+          )
+          complete(StatusCodes.OK)
+        } 
+      }
+    }
+  }
+This can now be passed in to process incoming requests:
+
+Http().bindAndHandle(
+  route,
+  "localhost",
+  8080
+)
