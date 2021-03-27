@@ -9,34 +9,42 @@ import akka.kafka.scaladsl.Producer
 import org.apache.kafka.clients.producer.ProducerRecord
 import akka.http.scaladsl.server.Directives._
 import akka.stream.scaladsl.Source
-import com.fintech.fraud.ingestor.domain.Model._
+import com.fintech.fraud.ingestor.domain.Model.PaymentTransaction
+import com.google.gson.Gson
+
 import scala.concurrent.Future
-import scala.concurrent.duration._
 
 
+object PaymentTransactionIngestor{
+    def apply(topic: String)(implicit  system: ActorSystem, producerSettings: ProducerSettings[String,String]) = new PaymentTransactionIngestor(topic)
+}
 
-class PaymentTransactionIngestor(topic: String)(implicit val system: ActorSystem, producerSettings: ProducerSettings[String,String]){
+class PaymentTransactionIngestor(topic: String)(implicit  system: ActorSystem, producerSettings: ProducerSettings[String,String]){
 
-  def publishInboundPayment(transaction: PaymentTransaction): Future[Done]={
-    val done: Future[Done] = Source(Seq(""))
+  import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+
+  import com.fintech.fraud.ingestor.domain.JsonFormats._
+
+  val gson = new Gson()
+
+  def publishInboundPayment(paymentTransaction: PaymentTransaction): Future[Done]={
+    val done: Future[Done] = Source(Seq(gson.toJson(paymentTransaction)))
       .map(value => new ProducerRecord[String, String](topic, value))
       .runWith(Producer.plainSink(producerSettings))
     done
   }
-
 
   val route : Route ={
       pathPrefix("ingestor") {
         concat(
           post {
             entity(as[PaymentTransaction]) { payment =>
-              onSuccess(publishInboundPayment(payment))
-              complete(StatusCodes.OK)
+              system.log.info("Incoming " + payment.accountNumber)
+              complete(publishInboundPayment(payment))
               }
           }
         )
       }
   }
-
 
 }
