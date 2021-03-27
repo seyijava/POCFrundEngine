@@ -4,12 +4,9 @@ import spray.json.DefaultJsonProtocol._
 object domain {
 
 
-  case class Feature(transactionId: String, encryptedDataPoint: String)
+  case class Feature(accountNumber: String, encryptedDataPoint: String)
 
-  case class Prediction(id: Long, timestamp: Long, value: Double)
+  case class Prediction(score: Double)
 
-  object Prediction {
-    implicit val predictJson = jsonFormat1(Prediction.apply)
-  }
 
 }

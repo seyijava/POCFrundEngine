@@ -39,6 +39,6 @@ class MLServingModelActor(implicit val system: ActorSystem) extends Actor with A
   def predict(features: String): Future[Prediction] = {
 
     // look up ml model file
-    Future(Prediction(123, 456, 0.5))
+    Future(Prediction(0.5))
   }
 }

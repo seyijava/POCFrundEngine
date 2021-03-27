@@ -16,6 +16,8 @@ lazy val `akka-sample-cluster-scala` = project
       "com.typesafe.akka" %% "akka-actor-typed"           % akkaVersion,
       "com.typesafe.akka" %% "akka-cluster-typed"         % akkaVersion,
       "com.typesafe.akka" %% "akka-cluster-sharding"      % akkaVersion,
+      "com.typesafe.akka" %% "akka-http" % "10.2.0",
+      "com.typesafe.akka" %% "akka-http-spray-json" % "10.2.0",
       "com.typesafe.akka" %% "akka-serialization-jackson" % akkaVersion,
       "ch.qos.logback"    %  "logback-classic"             % "1.2.3",
       "com.typesafe.akka" %% "akka-multi-node-testkit"    % akkaVersion % Test,
